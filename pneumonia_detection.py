@@ -5,10 +5,8 @@ import torch.nn as nn
 from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.models as models
-from torchvision.models import ResNet18_Weights
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
-
 # Device setup for CUDA or CPU
 Device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -36,7 +34,6 @@ TRANSFORMS = transforms.Compose([
 
 def get_prediction(image_file):
     """Predict if the image indicates NORMAL or PNEUMONIA."""
-    print(f"Predicting image: working")
     try:
         image = Image.open(image_file).convert("RGB")
         transformed_image = TRANSFORMS(image).unsqueeze(0).to(Device)
@@ -45,12 +42,18 @@ def get_prediction(image_file):
             top_class = output.argmax(dim=1).item()
         return 'NORMAL' if top_class == 0 else 'PNEUMONIA'
     except Exception as e:
-        print(f"Prediction error: {e}")
         return "Error during prediction"
 
 class BaseHandler(RequestHandler):
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")  # Allow requests from any origin
+        allowed_origins = ["http://rimajumder.ca", "http://localhost", "http://127.0.0.1"]  # Add your allowed origins here
+        origin = self.request.headers.get("Origin", "")  # Get the Origin of the request
+
+        if origin in allowed_origins:
+            self.set_header("Access-Control-Allow-Origin", origin)  # Allow only specific origins
+        else:
+            self.set_header("Access-Control-Allow-Origin", "null")  # Deny all other origins
+
         self.set_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
         self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -79,7 +82,6 @@ class PredictionHandler(BaseHandler):
             # Send response
             self.write(json.dumps({'phenomonia_prediction': prediction}))
         except Exception as e:
-            print(f"Error in request handling: {e}")
             self.set_status(500)
             self.write(json.dumps({'error': 'Failed to process the image'}))
 
@@ -92,9 +94,13 @@ def make_app():
 
 if __name__ == "__main__":
     app = make_app()
-    port = 8888
-    address = "0.0.0.0"  # Bind to all interfaces (LAN and localhost)
-    print(f"Starting server on http://{address}:{port}")
+
+    # Fetch PORT from environment variables, default to 8888 if not set
+    port = int(os.getenv("PORT", 8888))
+
+    # Fetch the address from environment variables, default to "0.0.0.0" (for Docker)
+    address = os.getenv("ADDRESS", "0.0.0.0")
+
     app.listen(port, address)
     IOLoop.current().start()
 
