@@ -7,17 +7,18 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
+
 # Device setup for CUDA or CPU
 Device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load the model once at the start
 def load_model():
-    """Load and initialize the ResNet model."""
+    """Load and initialize the ResNet model for 3-class classification."""
     model = models.resnet18(pretrained=True)  # Load pretrained weights
-    model.fc = nn.Linear(model.fc.in_features, 2)  # Modify for binary classification
-        
+    model.fc = nn.Linear(model.fc.in_features, 3)  # Modify for 3-class classification: NORMAL, PNEUMONIA, UNKNOWN
+    
     # Path to the model file (update the path as necessary)
-    model_path = os.path.join('model9_5.pt')
+    model_path = os.path.join('model_11.pt')
     model.load_state_dict(torch.load(model_path, map_location=Device))
     model.to(Device)
     model.eval()
@@ -29,20 +30,23 @@ MODEL = load_model()
 # Define image transformations
 TRANSFORMS = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.ToTensor(),  
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize for ResNet
 ])
 
 def get_prediction(image_file):
-    """Predict if the image indicates NORMAL or PNEUMONIA."""
+    """Predict if the image indicates NORMAL, PNEUMONIA, or UNKNOWN."""
     try:
         image = Image.open(image_file).convert("RGB")
         transformed_image = TRANSFORMS(image).unsqueeze(0).to(Device)
         with torch.no_grad():
             output = MODEL(transformed_image)
             top_class = output.argmax(dim=1).item()
-        return 'NORMAL' if top_class == 0 else 'PNEUMONIA'
+        # Map numeric predictions to class names
+        class_mapping = {0: 'NORMAL', 1: 'PNEUMONIA', 2: 'UNKNOWN'}
+        return class_mapping[top_class]
     except Exception as e:
-        return "Error during prediction"
+        return f"Error during prediction: {str(e)}"
 
 class BaseHandler(RequestHandler):
     def set_default_headers(self):
@@ -83,7 +87,7 @@ class PredictionHandler(BaseHandler):
             self.write(json.dumps({'phenomonia_prediction': prediction}))
         except Exception as e:
             self.set_status(500)
-            self.write(json.dumps({'error': 'Failed to process the image'}))
+            self.write(json.dumps({'error': 'Failed to process the image', 'details': str(e)}))
 
 # Tornado Application setup
 def make_app():
@@ -101,6 +105,6 @@ if __name__ == "__main__":
     # Fetch the address from environment variables, default to "0.0.0.0" (for Docker)
     address = os.getenv("ADDRESS", "0.0.0.0")
 
+    print(f"Server running on {address}:{port}")
     app.listen(port, address)
     IOLoop.current().start()
-
