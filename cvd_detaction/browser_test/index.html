@@ -89,18 +89,27 @@
         form.addEventListener('submit', (event) => {
             event.preventDefault(); // Prevent form from refreshing the page
 
+            // Min-Max scaler parameters
+            const minValues = [10798.0, 55.0, 11.0, 90.0, 60.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]; // Add all 12 min values
+            const scaleValues = [12915.0, 195.0, 189.0, 90.0, 60.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0]; // Add all 12 scale values
+
             // Collect the input values from the form
             const inputs = [];
             for (let i = 1; i <= 12; i++) {
                 const inputField = document.getElementById(`input${i}`);
-                inputs.push(parseFloat(inputField.value)); // Convert input to Float
+                const inputValue = parseFloat(inputField.value); // Convert input to Float
+
+                // Normalize the input using the Min-Max scaling formula
+                const normalizedValue = (inputValue - minValues[i - 1]) / scaleValues[i - 1];
+                inputs.push(normalizedValue);
             }
 
-            console.log("User Inputs:", inputs);
+            console.log("Normalized Inputs:", inputs);
 
-            // Run the model with the collected inputs
+            // Run the model with the normalized inputs
             runModel(inputs);
         });
+
     </script>
 </body>
 </html>
