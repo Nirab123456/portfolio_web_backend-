@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12 Input Form with ONNX Model and Min-Max Scaling</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input {
+            margin: 5px;
+            padding: 8px;
+            width: 100px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #loadingMessage {
+            font-size: 16px;
+            color: #FF4500;
+            display: none;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+</head>
+<body>
+    <h1>Enter 12 Values for Prediction</h1>
+    <form id="inputForm">
+        <div>
+            <input type="number" id="input1" placeholder="Gender (1/F, 2/M)" required>
+            <input type="number" id="input2" placeholder="Cardio (0/1)" required>
+            <input type="number" id="input3" placeholder="Age (days)" required>
+            <input type="number" id="input4" placeholder="Height (cm)" required>
+            <input type="number" id="input5" placeholder="Weight (kg)" required>
+            <input type="number" id="input6" placeholder="AP Hi (Systolic BP)" required>
+            <input type="number" id="input7" placeholder="AP Lo (Diastolic BP)" required>
+            <input type="number" id="input8" placeholder="Cholesterol (1/2/3)" required>
+            <input type="number" id="input9" placeholder="Glucose (1/2/3)" required>
+            <input type="number" id="input10" placeholder="Smoke (0/1)" required>
+            <input type="number" id="input11" placeholder="Alcohol (0/1)" required>
+            <input type="number" id="input12" placeholder="Active (0/1)" required>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="result"></div>
+    <div id="loadingMessage">Loading model and processing prediction...</div>
+
+    <script>
+        const form = document.getElementById('inputForm');
+        const resultDiv = document.getElementById('result');
+        const loadingMessage = document.getElementById('loadingMessage');
+
+        async function runModel(inputs) {
+            try {
+                // Show the loading message
+                loadingMessage.style.display = "block";
+                resultDiv.textContent = "";
+
+                // Load ONNX model
+                const session = new onnx.InferenceSession();
+                await session.loadModel('./model.onnx');
+
+                // Prepare the input tensor (1, 12)
+                const inputTensor = new onnx.Tensor(new Float32Array(inputs), 'float32', [1, 12]);
+
+                // Run inference
+                const outputMap = await session.run([inputTensor]);
+                const outputData = outputMap.values().next().value.data;
+
+                // Hide the loading message
+                loadingMessage.style.display = "none";
+
+                // Display the output
+                resultDiv.textContent = `Prediction Output: ${Array.from(outputData).join(", ")}`;
+            } catch (error) {
+                loadingMessage.style.display = "none";
+                resultDiv.textContent = "An error occurred during prediction.";
+                console.error("Error during model prediction:", error);
+            }
+        }
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent form from refreshing the page
+
+            // Collect the input values from the form
+            const inputs = [];
+            for (let i = 1; i <= 12; i++) {
+                const inputField = document.getElementById(`input${i}`);
+                inputs.push(parseFloat(inputField.value)); // Convert input to Float
+            }
+
+            console.log("User Inputs:", inputs);
+
+            // Run the model with the collected inputs
+            runModel(inputs);
+        });
+    </script>
+</body>
+</html>
