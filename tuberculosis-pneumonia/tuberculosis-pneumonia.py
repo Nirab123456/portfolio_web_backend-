@@ -41,7 +41,6 @@ def get_prediction(image_file):
         transformed_image = TRANSFORMS(image).unsqueeze(0).to(Device)
         with torch.no_grad():
             output = MODEL(transformed_image)
-            print('output:', output)
             top_class = output.argmax(dim=1).item()
         # Map numeric predictions to class names
         class_mapping = {0: 'NORMAL', 1: 'PNEUMONIA', 2: 'UNKNOWN', 3: 'TUBERCULOSIS'}
@@ -51,7 +50,7 @@ def get_prediction(image_file):
 
 class BaseHandler(RequestHandler):
     def set_default_headers(self):
-        allowed_origins = ["http://rimajumder.ca","https://rimajumder.ca","rimajumder.ca","http://localhost:3000"]
+        allowed_origins = ["http://rimajumder.ca","https://rimajumder.ca","rimajumder.ca"]
         origin = self.request.headers.get("Origin", "")  # Get the Origin of the request
 
         if origin in allowed_origins:

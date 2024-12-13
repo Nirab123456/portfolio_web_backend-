@@ -16,7 +16,7 @@ EXPOSE 8888
 # Set environment variables (optional defaults)
 ENV PORT=8888
 ENV ADDRESS=0.0.0.0
-ENV MODEL_PATH=model_11.pt
+ENV MODEL_PATH=model_22.pt
 
 # Command to run the application
-CMD ["python", "pneumonia_detection.py"]
+CMD ["python", "tuberculosis-pneumonia.py"]
