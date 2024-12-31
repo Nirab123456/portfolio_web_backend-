@@ -18,7 +18,7 @@ def load_model():
     model.fc = nn.Linear(model.fc.in_features, 4)  # Modify for 3-class classification: NORMAL, PNEUMONIA, UNKNOWN
     
     # Path to the model file (update the path as necessary)
-    model_path = os.path.join('model_22.pt')
+    model_path = os.path.join('model_24.pt')
     model.load_state_dict(torch.load(model_path, map_location=Device))
     model.to(Device)
     model.eval()
